@@ -57,7 +57,7 @@ header p { font-size:1em; margin-top:5px; }
 .overlay-content ul{margin-left:20px; margin-top:10px;}
 
 /* =======================
-   LEGENDE METEO
+   LEGENDE METEO CENTREE
 ======================= */
 .legend {
   max-width: 1000px;
@@ -76,38 +76,35 @@ header p { font-size:1em; margin-top:5px; }
 }
 .legend-items {
   display: flex;
-  justify-content: center;
+  justify-content: center; /* centre horizontalement */
   gap: 20px;
   flex-wrap: wrap;
 }
 .legend-items div {
   display: flex;
-  align-items: center;
+  align-items: center;    /* centre verticalement */
+  justify-content: center; /* centre horizontalement */
   gap: 5px;
   font-weight: 500;
   font-size: 1em;
+  text-align: center;
 }
 .legend-icon {
   width: 20px;
   height: 20px;
   border-radius: 6px;
-  display: inline-block;
-  border: 1px solid #2e5d3d;
-}
-.legend-icon.star {
-  width: 20px;
-  height: 20px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   font-size: 0.9em;
-  border-radius: 6px;
-  border: 1px solid #2e5d3d00;
-  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid #2e5d3d;
 }
 .legend-icon.green { background: rgba(144,238,144,0.85); }
 .legend-icon.orange { background: rgba(255,165,0,0.85); }
 .legend-icon.red { background: rgba(255,99,71,0.85); }
+.legend-icon.star {
+  background: rgba(255,255,255,0.85);
+}
 
 /* =======================
    FOOTER COPYRIGHT
@@ -127,15 +124,11 @@ footer {
    MEDIA QUERIES
 ======================= */
 @media(max-width:800px){
-  #map{height:400px;} 
-  header h1{font-size:2em;} 
-  .card{width:160px; font-size:0.9em;} 
-  .carousel{max-width:95%;}
+  .legend-items div{ font-size:0.95em; }
+  .legend-icon{ width:18px; height:18px; }
+  footer{ font-size:0.8em; }
 }
 @media(max-width:500px){
-  .top-controls input{width:120px; font-size:0.9em;} 
-  .top-controls button{padding:8px; font-size:0.9em;} 
-  .carousel-btn{font-size:1.2em; padding:8px;}
   .legend-items div{ font-size:0.8em; }
   .legend-icon{ width:16px; height:16px; }
   footer{ font-size:0.75em; }
