@@ -16,25 +16,47 @@
 </head>
 <body>
 
+  <!-- HEADER -->
   <header>
     <h1>Météo de la Carpe 🎣</h1>
     <p>Choisissez un lieu et une date pour découvrir la météo & conseils pêche</p>
   </header>
 
+  <!-- CONTROLES HAUT -->
   <div class="top-controls">
     <input type="text" id="cityInput" placeholder="Rechercher une ville..." />
     <input type="text" id="dateInput" placeholder="Choisir une date" readonly>
     <button id="searchBtn">Chercher</button>
   </div>
 
+  <!-- CARTE -->
   <div id="map"></div>
 
+  <!-- CARROUSEL -->
   <div class="carousel-container">
     <button class="carousel-btn left" id="prevDay">⬅️</button>
     <div id="weather-carousel" class="carousel"></div>
     <button class="carousel-btn right" id="nextDay">➡️</button>
   </div>
 
+  <!-- LEGENDE METEO -->
+  <section class="legend">
+  <h3>Légende météo</h3>
+  <div class="legend-items">
+    <div><span class="legend-icon green"></span> Conditions idéales ✅</div>
+    <div><span class="legend-icon orange"></span> Activité modérée ⚠️</div>
+    <div><span class="legend-icon red"></span> Conditions difficiles 🛑</div>
+    <div><span class="legend-icon star">⭐</span> Meilleur créneau</div>
+  </div>
+</section>
+
+  <!-- FOOTER COPYRIGHT -->
+  <footer>
+    <p>© 2026 Météo de la Carpe. Tous droits réservés.</p>
+    <p>Toute reproduction totale ou partielle est interdite sans autorisation.</p>
+  </footer>
+
+  <!-- SCRIPTS -->
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
   <script src="app.js"></script>

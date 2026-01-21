@@ -44,14 +44,6 @@ header p { font-size:1em; margin-top:5px; }
 }
 .card:hover { transform:scale(1.08); box-shadow:0 10px 30px rgba(0,0,0,0.3); }
 
-/* MEDIA QUERIES */
-@media(max-width:800px){
-  #map{height:400px;} header h1{font-size:2em;} .card{width:160px; font-size:0.9em;} .carousel{max-width:95%;}
-}
-@media(max-width:500px){
-  .top-controls input{width:120px; font-size:0.9em;} .top-controls button{padding:8px; font-size:0.9em;} .carousel-btn{font-size:1.2em; padding:8px;}
-}
-
 /* OVERLAY POPUP */
 .overlay {
   position:fixed; top:0; left:0; width:100%; height:100%;
@@ -63,3 +55,88 @@ header p { font-size:1em; margin-top:5px; }
 }
 .overlay-content h2{margin-bottom:10px;}
 .overlay-content ul{margin-left:20px; margin-top:10px;}
+
+/* =======================
+   LEGENDE METEO
+======================= */
+.legend {
+  max-width: 1000px;
+  margin: 20px auto;
+  padding: 15px;
+  background: rgba(255,255,255,0.85);
+  border-radius: 12px;
+  text-align: center;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+  z-index: 2;
+}
+.legend h3 {
+  margin-bottom: 10px;
+  color: #2e5d3d;
+  font-size: 1.2em;
+}
+.legend-items {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+.legend-items div {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 500;
+  font-size: 1em;
+}
+.legend-icon {
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  display: inline-block;
+  border: 1px solid #2e5d3d;
+}
+.legend-icon.star {
+  width: 20px;
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9em;
+  border-radius: 6px;
+  border: 1px solid #2e5d3d00;
+  background: rgba(255, 255, 255, 0.85);
+}
+.legend-icon.green { background: rgba(144,238,144,0.85); }
+.legend-icon.orange { background: rgba(255,165,0,0.85); }
+.legend-icon.red { background: rgba(255,99,71,0.85); }
+
+/* =======================
+   FOOTER COPYRIGHT
+======================= */
+footer {
+  text-align: center;
+  padding: 15px;
+  font-size: 0.85em;
+  color: #2e5d3d;
+  opacity: 0.8;
+  background: rgba(255,255,255,0.8);
+  border-top: 1px solid #2e5d3d;
+  margin-top: 20px;
+}
+
+/* =======================
+   MEDIA QUERIES
+======================= */
+@media(max-width:800px){
+  #map{height:400px;} 
+  header h1{font-size:2em;} 
+  .card{width:160px; font-size:0.9em;} 
+  .carousel{max-width:95%;}
+}
+@media(max-width:500px){
+  .top-controls input{width:120px; font-size:0.9em;} 
+  .top-controls button{padding:8px; font-size:0.9em;} 
+  .carousel-btn{font-size:1.2em; padding:8px;}
+  .legend-items div{ font-size:0.8em; }
+  .legend-icon{ width:16px; height:16px; }
+  footer{ font-size:0.75em; }
+}
