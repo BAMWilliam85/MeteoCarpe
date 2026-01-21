@@ -1,0 +1,65 @@
+/* =======================
+   RESET ET BASE
+======================= */
+* { box-sizing: border-box; margin:0; padding:0; }
+body, html { width:100%; height:100%; font-family: 'Roboto', sans-serif; overflow-x:hidden; background:#e0f7fa; }
+
+/* HEADER */
+header { position: relative; z-index: 2; text-align:center; margin:15px 0; }
+header h1 { font-family:'Pacifico', cursive; font-size:2.5em; color:#2e5d3d; text-shadow:1px 1px 4px #a0d9a0; }
+header p { font-size:1em; margin-top:5px; }
+
+/* CONTROLES HAUT */
+.top-controls {
+  position: relative; z-index: 2;
+  display:flex; justify-content:center; align-items:center;
+  flex-wrap:wrap; gap:10px; margin-bottom:10px;
+}
+.top-controls input, .top-controls button {
+  padding:10px; font-size:1em; border-radius:12px; border:none;
+}
+.top-controls input { width:180px; }
+.top-controls button { background:#2e5d3d; color:white; cursor:pointer; transition:0.2s; }
+.top-controls button:hover { background:#1f3a27; }
+
+/* CARTE LEAFLET */
+#map { position:relative; z-index:2; width:90%; max-width:1000px; height:500px; margin:0 auto 15px auto; border:3px solid #2e5d3d; border-radius:12px; }
+
+/* CARROUSEL */
+.carousel-container { position:relative; z-index:2; display:flex; justify-content:center; align-items:center; gap:5px; margin-top:10px; }
+.carousel { display:flex; overflow-x:auto; gap:15px; padding:10px; scroll-behavior:smooth; max-width:95%; z-index:10; background:rgba(255,255,255,0.85); border-radius:12px; }
+.carousel::-webkit-scrollbar { height:8px; }
+.carousel::-webkit-scrollbar-thumb { background:#2e5d3d; border-radius:4px; }
+
+/* BOUTONS CARROUSEL */
+.carousel-btn { padding:10px; font-size:1.5em; background:#2e5d3d; color:white; border:none; border-radius:50%; cursor:pointer; transition:0.2s; z-index:12; }
+.carousel-btn:hover { background:#1f3a27; }
+
+/* CARTES METEO */
+.card {
+  flex:0 0 auto; width:220px; min-width:180px;
+  background:rgba(255,255,255,0.85); border-radius:16px;
+  padding:15px; text-align:left; box-shadow:0 6px 20px rgba(0,0,0,0.25);
+  transition: transform 0.3s, box-shadow 0.3s; cursor:pointer;
+}
+.card:hover { transform:scale(1.08); box-shadow:0 10px 30px rgba(0,0,0,0.3); }
+
+/* MEDIA QUERIES */
+@media(max-width:800px){
+  #map{height:400px;} header h1{font-size:2em;} .card{width:160px; font-size:0.9em;} .carousel{max-width:95%;}
+}
+@media(max-width:500px){
+  .top-controls input{width:120px; font-size:0.9em;} .top-controls button{padding:8px; font-size:0.9em;} .carousel-btn{font-size:1.2em; padding:8px;}
+}
+
+/* OVERLAY POPUP */
+.overlay {
+  position:fixed; top:0; left:0; width:100%; height:100%;
+  background:rgba(0,0,0,0.6); display:flex; justify-content:center; align-items:center;
+  z-index:9999;
+}
+.overlay-content {
+  background:white; border-radius:12px; padding:20px; max-width:400px; width:90%;
+}
+.overlay-content h2{margin-bottom:10px;}
+.overlay-content ul{margin-left:20px; margin-top:10px;}
