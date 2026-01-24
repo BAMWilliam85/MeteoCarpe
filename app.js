@@ -1,41 +1,18 @@
 // =======================
 // VARIABLES GLOBALES
 // =======================
-let currentLat = 48.8566;
-let currentLon = 2.3522;
 let currentDate = new Date();
 
 // =======================
 // MAP
 // =======================
-const map = L.map('map').setView([currentLat, currentLon], 6);
+const map = L.map('map').setView([48.8566, 2.3522], 6);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
 
-// Marker initial
-let marker = L.marker([currentLat, currentLon]).addTo(map);
+let marker = L.marker([48.8566, 2.3522]).addTo(map);
 map.on('click', e => {
     marker.setLatLng(e.latlng);
-    currentLat = e.latlng.lat;
-    currentLon = e.latlng.lng;
     refreshWeather();
-});
-
-// =======================
-// DATE PICKER
-// =======================
-const dateInput = flatpickr("#dateInput", {
-    altInput: true,
-    altFormat: "d-m-Y",
-    dateFormat: "Y-m-d",
-    defaultDate: currentDate,
-    minDate: "today",
-    maxDate: new Date().fp_incr(7),
-    onChange: dates => {
-        if(dates.length) {
-            currentDate = dates[0];
-            refreshWeather();
-        }
-    }
 });
 
 // =======================
@@ -102,9 +79,6 @@ function fishingInfo(temp, windSpeed, windDir, pressure, precipitation, date, la
     const tips=[];
     let score=0;
 
-    // --------------------
-    // Température
-    // --------------------
     const tempRanges = {
         'Printemps': {veryCold:8, cold:14, ideal:20, hot:Infinity},
         'Été': {veryCold:10, cold:16, ideal:27, hot:Infinity},
@@ -122,9 +96,6 @@ function fishingInfo(temp, windSpeed, windDir, pressure, precipitation, date, la
         if(temp<=t.max){ tips.push(`${t.emoji} : ${t.text}`); score+=t.points; break; }
     }
 
-    // --------------------
-    // Pression atmosphérique
-    // --------------------
     const pressureText = [
         { max:1009, emoji:'📉 Pression Basse', text:"Favorise les touches.", points:2 },
         { max:1020, emoji:'⚖️ Pression Stable', text:"Activité normale.", points:1 },
@@ -134,9 +105,6 @@ function fishingInfo(temp, windSpeed, windDir, pressure, precipitation, date, la
         if(pressure<=p.max){ tips.push(`${p.emoji} : ${p.text}`); score+=p.points; break; }
     }
 
-    // --------------------
-    // Vent
-    // --------------------
     const windText = [
         { max:5, emoji:'💨 Vent Faible', text:"Conditions parfaites.", points:2 },
         { max:15, emoji:'💨 Vent Modéré', text:"Pêche possible mais attention a l’agitation.", points:1 },
@@ -146,9 +114,6 @@ function fishingInfo(temp, windSpeed, windDir, pressure, precipitation, date, la
         if(windSpeed<=w.max){ tips.push(`${w.emoji} (${windDirectionCardinal(windDir)}) : ${w.text}`); score+=w.points; break; }
     }
 
-    // --------------------
-    // Pluie / Humidité
-    // --------------------
     const rainText = [
         { max:0, emoji:'☀️ Pas de pluie', text:"Pas de Parapluie.", points:2 },
         { max:2, emoji:'🌦️ Légère pluie', text:"Peut stimuler l’activité sans gêner les touches.", points:1 },
@@ -158,26 +123,15 @@ function fishingInfo(temp, windSpeed, windDir, pressure, precipitation, date, la
         if(precipitation<=r.max){ tips.push(`${r.emoji} : ${r.text}`); score+=r.points; break; }
     }
 
-    // --------------------
-    // Saison
-    // --------------------
     const seasonTips = {
         'Printemps': "Poissons actifs, nutrition élevée, bon moment pour les gros sujets mais prudence à la période de fraye (mi-avril à fin mai)",
-        'Été': "Activité concentrée tôt le matin et en soirée, journée trés chaude = pêche calme.",
+        'Été': "Activité concentrée tôt le matin et en soirée, journée très chaude = pêche calme.",
         'Automne': "Préparation à l’hiver, carpes très actives, touches importantes possibles.",
         'Hiver': "Ralentissement général, pêche longue et patiente, privilégiez les journées douces."
     };
     tips.push(`📅 Saison (${season}) : ${seasonTips[season]}`);
-
-    // --------------------
-    // Phase lunaire
-    // --------------------
-
     tips.push(`🌙 Phase lunaire : ${solunar.moonPhase}`);
 
-    // --------------------
-    // Couleur selon score
-    // --------------------
     let color='red';
     if(score>=9) color='green';
     else if(score>=7) color='yellow';
@@ -211,101 +165,139 @@ function openWeatherOverlay(d){
 }
 
 // =======================
-// METEO + CARROUSEL
+// FETCH MET NORWAY (Yr.no)
 // =======================
-function getWeather(lat, lon, date){
-    const dateStr=date.toISOString().split('T')[0];
-    const now=new Date();
-    const isToday=now.toDateString()===date.toDateString();
-    const currentHour=now.getHours();
-
-    fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=temperature_2m,weathercode,windspeed_10m,winddirection_10m,pressure_msl,precipitation&daily=sunrise,sunset&start_date=${dateStr}&end_date=${dateStr}&timezone=auto`)
-    .then(r=>r.json())
-    .then(data=>{
-        const carousel=document.getElementById('weather-carousel');
-        carousel.innerHTML='';
-        const sunrise = data.daily.sunrise[0].slice(11,16);
-        const sunset = data.daily.sunset[0].slice(11,16);
-
-        let bestScore=-1, bestIndex=null;
-
-        data.hourly.time.forEach((t,i)=>{
-            const d=new Date(t);
-            if(d.toDateString()!==date.toDateString()) return;
-            if(isToday && d.getHours()<currentHour) return;
-            const info = fishingInfo(
-                data.hourly.temperature_2m[i],
-                data.hourly.windspeed_10m[i],
-                data.hourly.winddirection_10m[i],
-                data.hourly.pressure_msl[i],
-                data.hourly.precipitation[i] ?? 0,
-                date,
-                lat
-            );
-            if(info.score>bestScore){ bestScore=info.score; bestIndex=i; }
-        });
-
-        data.hourly.time.forEach((t,i)=>{
-            const d=new Date(t);
-            if(d.toDateString()!==date.toDateString()) return;
-            if(isToday && d.getHours()<currentHour) return;
-
-            const temp = data.hourly.temperature_2m[i];
-            const windSpeed = data.hourly.windspeed_10m[i];
-            const windDir = data.hourly.winddirection_10m[i];
-            const pressure = data.hourly.pressure_msl[i];
-            const precipitation = data.hourly.precipitation[i] ?? 0;
-            const code = data.hourly.weathercode[i];
-
-            const info = fishingInfo(temp, windSpeed, windDir, pressure, precipitation, date, lat);
-
-            const dayLabel=d.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'numeric'});
-            const hourLabel=String(d.getHours()).padStart(2,'0')+'h';
-            const best=i===bestIndex?' ⭐':'';
-
-            const card=document.createElement('div');
-            card.className='card';
-            card.style.backgroundColor=
-                info.color==='green' ? 'rgba(144,238,144,0.85)' :
-                info.color==='yellow' ? 'rgba(255,255,0,0.85)' :
-                info.color==='orange' ? 'rgba(255,165,0,0.85)' :
-                'rgba(255,99,71,0.85)';
-
-            card.innerHTML=`
-                <strong>${dayLabel} ${hourLabel}${best}</strong><br>
-                ${weatherIcon(code)}<br>
-                🌡️ ${temp} °C<br>
-                💨 ${windSpeed} km/h<br>
-                🌧️ ${precipitation} mm<br>
-                📈 ${pressure} hPa
-            `;
-
-            card.onclick=()=>openWeatherOverlay({
-                label:`${dayLabel} ${hourLabel}${best}`,
-                icon:weatherIcon(code),
-                temp,
-                windSpeed,
-                windDir:windDirectionCardinal(windDir),
-                precipitation,
-                pressure,
-                sunrise,
-                sunset,
-                season:info.season,
-                tips:info.tips
-            });
-
-            carousel.appendChild(card);
-        });
-
-        // Drag & swipe
-        let isDown=false, startX, scrollLeft;
-        carousel.onmousedown=e=>{isDown=true;startX=e.pageX;scrollLeft=carousel.scrollLeft;}
-        carousel.onmouseleave=()=>isDown=false;
-        carousel.onmouseup=()=>isDown=false;
-        carousel.onmousemove=e=>{if(!isDown) return; e.preventDefault(); carousel.scrollLeft=scrollLeft-(e.pageX-startX)*1.2;}
-        carousel.ontouchstart=e=>{startX=e.touches[0].pageX; scrollLeft=carousel.scrollLeft;}
-        carousel.ontouchmove=e=>{carousel.scrollLeft=scrollLeft-(e.touches[0].pageX-startX)*1.2;}
+async function fetchMETNorway(lat, lon, dateStr){
+    const url = `https://api.met.no/weatherapi/locationforecast/2.0/compact?lat=${lat}&lon=${lon}`;
+    const res = await fetch(url, { headers:{ 'User-Agent':'FishingApp/1.0 your@email.com' } });
+    const data = await res.json();
+    const hours = data.properties.timeseries.filter(ts=>{
+        const tsDate = new Date(ts.time);
+        return tsDate.toISOString().split('T')[0]===dateStr;
     });
+    return hours.map(ts=>{
+        let symbol = ts.data.next_1_hours?.summary?.symbol_code ?? '';
+        return {
+            time: ts.time,
+            temperature_2m: ts.data.instant.details.air_temperature,
+            windspeed_10m: ts.data.instant.details.wind_speed,
+            winddirection_10m: ts.data.instant.details.wind_from_direction,
+            pressure_msl: ts.data.instant.details.air_pressure_at_sea_level,
+            precipitation: ts.data.next_1_hours?.details?.precipitation_amount ?? 0,
+            weathercode: symbol.includes('clearsky') ? 0 :
+                         symbol.includes('partlycloudy') ? 2 :
+                         symbol.includes('cloudy') ? 3 :
+                         symbol.includes('rain') ? 61 : 0
+        };
+    });
+}
+
+// =======================
+// METEO + CARROUSEL (avec moyenne)
+// =======================
+async function getWeather(lat, lon, date){
+    const dateStr = date.toISOString().split('T')[0];
+    const now = new Date();
+    const isToday = now.toDateString() === date.toDateString();
+    const currentHour = now.getHours();
+
+    const openMeteoURL = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=temperature_2m,weathercode,windspeed_10m,winddirection_10m,pressure_msl,precipitation&daily=sunrise,sunset&start_date=${dateStr}&end_date=${dateStr}&timezone=auto`;
+
+    const [openData, yrData] = await Promise.all([
+        fetch(openMeteoURL).then(r=>r.json()),
+        fetchMETNorway(lat, lon, dateStr)
+    ]);
+
+    const carousel = document.getElementById('weather-carousel');
+    carousel.innerHTML = '';
+
+    const sunrise = openData.daily.sunrise[0].slice(11,16);
+    const sunset = openData.daily.sunset[0].slice(11,16);
+
+    const hours = openData.hourly.time.map((t,i)=>{
+        const openHour = {
+            time: t,
+            temp: openData.hourly.temperature_2m[i],
+            wind: openData.hourly.windspeed_10m[i],
+            windDir: openData.hourly.winddirection_10m[i],
+            pressure: openData.hourly.pressure_msl[i],
+            precip: openData.hourly.precipitation[i] ?? 0,
+            code: openData.hourly.weathercode[i]
+        };
+        const yrHour = yrData.find(y=>y.time===t);
+        if(!yrHour) return openHour;
+        return {
+            time: t,
+            temp: (openHour.temp + yrHour.temperature_2m)/2,
+            wind: (openHour.wind + yrHour.windspeed_10m)/2,
+            windDir: (openHour.windDir + yrHour.winddirection_10m)/2,
+            pressure: (openHour.pressure + yrHour.pressure_msl)/2,
+            precip: (openHour.precip + yrHour.precipitation)/2,
+            code: Math.round((openHour.code + yrHour.weathercode)/2)
+        };
+    });
+
+    let bestScore=-1, bestIndex=null;
+    hours.forEach((h,i)=>{
+        const d = new Date(h.time);
+        if(d.toDateString()!==date.toDateString()) return;
+        if(isToday && d.getHours()<currentHour) return;
+        const info = fishingInfo(h.temp, h.wind, h.windDir, h.pressure, h.precip, date, lat);
+        if(info.score > bestScore){ bestScore = info.score; bestIndex = i; }
+    });
+
+    hours.forEach((h,i)=>{
+        const d = new Date(h.time);
+        if(d.toDateString()!==date.toDateString()) return;
+        if(isToday && d.getHours()<currentHour) return;
+
+        const info = fishingInfo(h.temp, h.wind, h.windDir, h.pressure, h.precip, date, lat);
+        const dayLabel = d.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'numeric'});
+        const hourLabel = String(d.getHours()).padStart(2,'0')+'h';
+        const best = i===bestIndex ? ' ⭐' : '';
+
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.style.backgroundColor =
+            info.color==='green' ? 'rgba(144,238,144,0.85)' :
+            info.color==='yellow' ? 'rgba(255,255,0,0.85)' :
+            info.color==='orange' ? 'rgba(255,165,0,0.85)' :
+            'rgba(255,99,71,0.85)';
+
+        card.innerHTML = `
+            <strong>${dayLabel} ${hourLabel}${best}</strong><br>
+            ${weatherIcon(h.code)}<br>
+            🌡️ ${h.temp.toFixed(1)} °C<br>
+            💨 ${h.wind.toFixed(1)} km/h<br>
+            🌧️ ${h.precip.toFixed(1)} mm<br>
+            📈 ${h.pressure.toFixed(0)} hPa
+        `;
+
+        card.onclick = ()=>openWeatherOverlay({
+            label:`${dayLabel} ${hourLabel}${best}`,
+            icon:weatherIcon(h.code),
+            temp:h.temp.toFixed(1),
+            windSpeed:h.wind.toFixed(1),
+            windDir:windDirectionCardinal(h.windDir),
+            precipitation:h.precip.toFixed(1),
+            pressure:h.pressure.toFixed(0),
+            sunrise,
+            sunset,
+            season:info.season,
+            tips:info.tips
+        });
+
+        carousel.appendChild(card);
+    });
+
+    // Drag & swipe
+    let isDown=false, startX, scrollLeft;
+    carousel.onmousedown = e => { isDown=true; startX=e.pageX; scrollLeft=carousel.scrollLeft; }
+    carousel.onmouseleave = ()=>isDown=false;
+    carousel.onmouseup = ()=>isDown=false;
+    carousel.onmousemove = e => { if(!isDown) return; e.preventDefault(); carousel.scrollLeft=scrollLeft-(e.pageX-startX)*1.2; }
+    carousel.ontouchstart = e => { startX=e.touches[0].pageX; scrollLeft=carousel.scrollLeft; }
+    carousel.ontouchmove = e => { carousel.scrollLeft=scrollLeft-(e.touches[0].pageX-startX)*1.2; }
 }
 
 // =======================
@@ -313,25 +305,44 @@ function getWeather(lat, lon, date){
 // =======================
 function refreshWeather(){
     if(!marker) return;
-    const {lat,lng}=marker.getLatLng();
+    const {lat,lng} = marker.getLatLng();
     getWeather(lat,lng,currentDate);
 }
 
 // =======================
-// BOUTONS JOURS
+// BOUTONS JOURS + FLECHES
 // =======================
 function changeDay(delta){
     const newDate = new Date(currentDate);
     newDate.setDate(newDate.getDate()+delta);
-    const today=new Date(); today.setHours(0,0,0,0);
-    const maxDate=new Date(today); maxDate.setDate(today.getDate()+7);
+    const today = new Date(); today.setHours(0,0,0,0);
+    const maxDate = new Date(today); maxDate.setDate(today.getDate()+6);
     if(newDate<today || newDate>maxDate) return;
-    currentDate=newDate;
-    dateInput.setDate(currentDate,true);
+    currentDate = newDate;
+    updateDayButtons();
     refreshWeather();
 }
-document.getElementById('prevDay').onclick=()=>changeDay(-1);
-document.getElementById('nextDay').onclick=()=>changeDay(1);
+document.getElementById('prevDay').onclick = ()=>changeDay(-1);
+document.getElementById('nextDay').onclick = ()=>changeDay(1);
+
+function updateDayButtons(){
+    const container = document.getElementById('dayButtons');
+    container.innerHTML='';
+    const today = new Date();
+    for(let i=0;i<=6;i++){
+        const d = new Date();
+        d.setDate(today.getDate()+i);
+        const btn = document.createElement('button');
+        if(i===0) btn.textContent='Aujourd\'hui';
+        else if(i===1) btn.textContent='Demain';
+        else btn.textContent=d.toLocaleDateString('fr-FR',{day:'numeric',month:'numeric'});
+        btn.className='day-btn';
+        if(d.toDateString()===currentDate.toDateString()) btn.classList.add('active');
+        btn.onclick = ()=>{ currentDate=d; updateDayButtons(); refreshWeather(); }
+        container.appendChild(btn);
+    }
+}
+updateDayButtons();
 
 // =======================
 // RECHERCHE VILLE
@@ -349,7 +360,6 @@ function searchCity(){
         const lon=+d[0].lon;
         map.setView([lat, lon],12);
         marker.setLatLng([lat, lon]);
-        currentLat=lat; currentLon=lon;
         refreshWeather();
     });
 }
@@ -357,6 +367,6 @@ searchBtn.onclick=searchCity;
 cityInput.onkeypress=e=>{if(e.key==='Enter') searchCity();}
 
 // =======================
-// INIT
+// INITIAL
 // =======================
 refreshWeather();

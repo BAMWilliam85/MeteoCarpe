@@ -7,8 +7,6 @@
 
 <!-- Leaflet -->
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-<!-- Flatpickr -->
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 <!-- Google Fonts -->
 <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&family=Pacifico&display=swap" rel="stylesheet">
 
@@ -25,7 +23,7 @@
   <!-- CONTROLES HAUT -->
   <div class="top-controls">
     <input type="text" id="cityInput" placeholder="Rechercher une ville..." />
-    <input type="text" id="dateInput" placeholder="Choisir une date" readonly>
+    <div class="day-buttons" id="dayButtons"></div>
     <button id="searchBtn">Chercher</button>
   </div>
 
@@ -59,7 +57,6 @@
 
   <!-- SCRIPTS -->
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
   <script src="app.js"></script>
 </body>
 </html>
