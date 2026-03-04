@@ -302,7 +302,7 @@ function fishingInfo(temp, windSpeed, windDir, pressure, precipitation, date, la
 
     // ── 6. SAISON (conseil qualitatif — aucun impact sur le score) ───────
     const seasonTips = {
-        'Printemps': `🌸 Printemps : Carpes en pleine forme après l'hiver. Attention à la fraye (mi-avril à fin mai).`,
+        'Printemps': `🌸 Printemps : Carpes en pleine forme après l'hiver. Attention à la fraye (mi-avril à fin mai) où l'alimentation chute fortement.`,
         'Été':       `☀️ Été : Pêche aléatoire en journée. Misez sur l'aube, le crépuscule et la nuit. Privilégiez les zones brassées, les herbiers et les arrivées d'eau (zones oxygénées).`,
         'Automne':   `🍂 Automne : Saison la plus productive. Les carpes constituent leurs réserves — une dépression avec pluie et vent peut déclencher un carton.`,
         'Hiver':     `❄️ Hiver : Rythme lent. Les journées douces et stables entre deux dépressions sont souvent les meilleures. Amorçage très léger.`
@@ -668,27 +668,26 @@ searchBtn.addEventListener('click', searchCity);
 cityInput.addEventListener('keypress', e => { if (e.key === 'Enter') searchCity(); });
 
 // =======================
-// GÉOLOCALISATION — au chargement de la carte
+// GÉOLOCALISATION — après idle complet de la carte
 // =======================
-map.on('load', () => {
-    if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-            pos => {
-                const { latitude: lat, longitude: lon } = pos.coords;
-                map.flyTo({ center: [lon, lat], zoom: 12 });
-                marker.setLngLat([lon, lat]);
-                markerLngLat = [lon, lat];
-                refreshWeather();
-            },
-            () => {
-                // Refus ou erreur → Paris par défaut
-                refreshWeather();
-            },
-            { enableHighAccuracy: true, timeout: 8000 }
-        );
-    } else {
-        refreshWeather();
-    }
+map.once('idle', () => {
+    // Météo Paris par défaut immédiatement
+    refreshWeather();
+
+    // Demander la géoloc en parallèle
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+        pos => {
+            const { latitude: lat, longitude: lon } = pos.coords;
+            // jumpTo (instantané) plutôt que flyTo pour éviter les artefacts au premier chargement
+            map.jumpTo({ center: [lon, lat], zoom: 12 });
+            marker.setLngLat([lon, lat]);
+            markerLngLat = [lon, lat];
+            refreshWeather();
+        },
+        () => { /* refus silencieux, Paris déjà chargé */ },
+        { enableHighAccuracy: false, timeout: 6000, maximumAge: 60000 }
+    );
 });
 
 // =======================
