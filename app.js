@@ -9,41 +9,26 @@ let currentDate = new Date();
 // =======================
 // MAP — MapLibre GL JS + Stadia Maps (gratuit en localhost)
 // =======================
-const STYLE_OUTDOORS  = 'https://tiles.stadiamaps.com/styles/outdoors.json';
-const STYLE_SATELLITE = {
+// OSM raster — 100% gratuit, sans clé, tuiles officielles OpenStreetMap
+const STYLE_OUTDOORS = {
     version: 8,
     sources: {
-        // Google Maps satellite tiles — zoom 20+, images très récentes, haute résolution
-        sat: {
+        osm: {
             type: 'raster',
             tiles: [
-                'https://mt0.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
-                'https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
-                'https://mt2.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
-                'https://mt3.google.com/vt/lyrs=s&x={x}&y={y}&z={z}'
+                'https://a.tile.openstreetmap.org/{z}/{x}/{y}.png',
+                'https://b.tile.openstreetmap.org/{z}/{x}/{y}.png',
+                'https://c.tile.openstreetmap.org/{z}/{x}/{y}.png'
             ],
             tileSize: 256,
-            maxzoom: 18,
-            attribution: '© Google Maps'
-        },
-        // Labels superposés (routes, villes)
-        labels: {
-            type: 'raster',
-            tiles: [
-                'https://mt0.google.com/vt/lyrs=h&x={x}&y={y}&z={z}',
-                'https://mt1.google.com/vt/lyrs=h&x={x}&y={y}&z={z}',
-                'https://mt2.google.com/vt/lyrs=h&x={x}&y={y}&z={z}',
-                'https://mt3.google.com/vt/lyrs=h&x={x}&y={y}&z={z}'
-            ],
-            tileSize: 256,
-            maxzoom: 18
+            maxzoom: 19,
+            attribution: '\u00a9 OpenStreetMap contributors'
         }
     },
     layers: [
-        { id: 'sat-layer',    type: 'raster', source: 'sat',    paint: { 'raster-fade-duration': 200 } },
-        { id: 'labels-layer', type: 'raster', source: 'labels', paint: { 'raster-opacity': 0.85, 'raster-fade-duration': 200 } }
+        { id: 'osm', type: 'raster', source: 'osm', paint: { 'raster-fade-duration': 200 } }
     ]
-};
+}
 
 let currentStyle = 'outdoors';
 let markerLngLat = [2.3522, 48.8566];
