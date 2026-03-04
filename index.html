@@ -5,58 +5,847 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Météo de la Carpe</title>
 
-<!-- Leaflet -->
-<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-<!-- Google Fonts -->
-<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&family=Pacifico&display=swap" rel="stylesheet">
+<link href="https://unpkg.com/maplibre-gl@4.1.0/dist/maplibre-gl.css" rel="stylesheet">
+<script src="https://unpkg.com/maplibre-gl@4.1.0/dist/maplibre-gl.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;0,9..144,600;1,9..144,300;1,9..144,500&family=Figtree:wght@300;400;500;600&display=swap" rel="stylesheet">
 
-<link rel="stylesheet" href="style.css">
+<style>
+/* ══════════════════════════════════════
+   TOKENS — nature, profond, apaisant
+══════════════════════════════════════ */
+:root {
+  /* Fond forêt profonde — pas noir, vert très sombre chaud */
+  --bg0:        #0d1612;
+  --bg1:        #121e18;
+  --bg2:        #172520;
+  --bg3:        #1e302a;
+  --bg4:        #253d35;
+
+  /* Texte */
+  --t1:         #e8f0eb;
+  --t2:         #94b09e;
+  --t3:         #567060;
+
+  /* Accents naturels */
+  --sage:       #7fb98a;
+  --sage-light: #a3d0ac;
+  --sage-dim:   rgba(127,185,138,0.12);
+  --sage-border:rgba(127,185,138,0.22);
+  --water:      #6baab8;
+  --water-dim:  rgba(107,170,184,0.12);
+  --water-border:rgba(107,170,184,0.25);
+  --moss:       #4a7c5a;
+  --gold:       #d4a853;
+  --gold-dim:   rgba(212,168,83,0.15);
+
+  /* Scores */
+  --s-green:    #6abf7a;
+  --s-yellow:   #c9a84c;
+  --s-orange:   #c07840;
+  --s-red:      #b05545;
+
+  /* Bordures */
+  --border:     rgba(255,255,255,0.06);
+  --border2:    rgba(255,255,255,0.10);
+
+  --r:    10px;
+  --r-sm: 6px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  min-height: 100%;
+  background: var(--bg0);
+  color: var(--t1);
+  font-family: 'Figtree', sans-serif;
+  font-size: 14.5px;
+  font-weight: 400;
+  overflow-x: hidden;
+}
+
+/* ══════════════════════════════════════
+   FOND — brume forêt, pas de grain dur
+══════════════════════════════════════ */
+body::before {
+  content: '';
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background:
+    radial-gradient(ellipse 90% 60% at 15% 0%,   rgba(74,124,90,0.14) 0%, transparent 60%),
+    radial-gradient(ellipse 70% 70% at 85% 100%,  rgba(42,80,65,0.18) 0%, transparent 55%),
+    radial-gradient(ellipse 50% 40% at 50% 50%,   rgba(18,30,24,0.4)  0%, transparent 80%);
+}
+
+/* Très léger grain organique */
+body::after {
+  content: '';
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  opacity: 0.028;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='500' height='500'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='500' height='500' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 280px;
+}
+
+/* ══════════════════════════════════════
+   LAYOUT
+══════════════════════════════════════ */
+.app {
+  position: relative; z-index: 1;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 28px 80px;
+}
+
+/* ══════════════════════════════════════
+   HEADER
+══════════════════════════════════════ */
+header {
+  padding: 52px 0 36px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: end;
+  gap: 24px;
+  border-bottom: 1px solid var(--border2);
+  margin-bottom: 28px;
+}
+
+.header-kicker {
+  font-size: 0.74em;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--sage);
+  margin-bottom: 14px;
+  display: flex; align-items: center; gap: 10px;
+}
+.header-kicker::before {
+  content: '';
+  width: 24px; height: 1.5px;
+  background: var(--sage);
+  border-radius: 2px;
+}
+
+header h1 {
+  font-family: 'Fraunces', serif;
+  font-size: clamp(2.8em, 5.5vw, 4.6em);
+  font-weight: 500;
+  line-height: 1.0;
+  letter-spacing: -0.025em;
+  color: var(--t1);
+}
+header h1 em {
+  font-style: italic;
+  font-weight: 300;
+  color: var(--sage-light);
+}
+
+.header-desc {
+  margin-top: 14px;
+  font-size: 0.92em;
+  color: var(--t2);
+  font-weight: 300;
+  line-height: 1.65;
+  max-width: 400px;
+}
+
+.header-badge-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-end;
+  padding-bottom: 6px;
+}
+.header-badge {
+  background: var(--bg3);
+  border: 1px solid var(--border2);
+  border-radius: 30px;
+  padding: 5px 13px;
+  font-size: 0.74em;
+  color: var(--t2);
+  font-weight: 400;
+  white-space: nowrap;
+}
+
+/* ══════════════════════════════════════
+   TOOLBAR
+══════════════════════════════════════ */
+.toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 22px;
+}
+
+.search-box {
+  display: flex;
+  background: var(--bg2);
+  border: 1px solid var(--border2);
+  border-radius: var(--r-sm);
+  overflow: hidden;
+  transition: border-color 0.25s, box-shadow 0.25s;
+}
+.search-box:focus-within {
+  border-color: var(--sage-border);
+  box-shadow: 0 0 0 3px var(--sage-dim);
+}
+.search-box input {
+  border: none; outline: none;
+  background: transparent;
+  padding: 10px 15px;
+  font-family: 'Figtree', sans-serif;
+  font-size: 0.93em;
+  color: var(--t1);
+  width: 215px;
+}
+.search-box input::placeholder { color: var(--t3); }
+.search-box button {
+  background: var(--moss);
+  color: var(--t1);
+  border: none;
+  padding: 10px 18px;
+  font-family: 'Figtree', sans-serif;
+  font-size: 0.84em;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.search-box button:hover { background: var(--sage); color: var(--bg0); }
+
+.day-strip { display: flex; gap: 5px; flex-wrap: wrap; }
+.day-btn {
+  padding: 7px 14px;
+  border: 1px solid var(--border2);
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--t2);
+  font-family: 'Figtree', sans-serif;
+  font-size: 0.82em;
+  cursor: pointer;
+  transition: all 0.18s;
+}
+.day-btn:hover {
+  border-color: var(--sage-border);
+  color: var(--sage-light);
+  background: var(--sage-dim);
+}
+.day-btn.active {
+  background: var(--sage-dim);
+  border-color: var(--sage-border);
+  color: var(--sage-light);
+  font-weight: 600;
+}
+
+/* ══════════════════════════════════════
+   SECTION LABEL
+══════════════════════════════════════ */
+.slabel {
+  font-size: 0.7em;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--t3);
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 12px;
+}
+.slabel::after {
+  content: '';
+  flex: 1; height: 1px;
+  background: var(--border);
+}
+
+/* ══════════════════════════════════════
+   MAP
+══════════════════════════════════════ */
+.map-section { margin-bottom: 28px; }
+.map-header {
+  display: flex; align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.map-toggles { display: flex; gap: 4px; }
+.map-toggle {
+  padding: 6px 13px;
+  border: 1px solid var(--border2);
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--t2);
+  font-family: 'Figtree', sans-serif;
+  font-size: 0.78em;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.18s;
+}
+.map-toggle:hover { color: var(--t1); border-color: var(--border2); }
+.map-toggle.active {
+  background: var(--water-dim);
+  border-color: var(--water-border);
+  color: var(--water);
+}
+
+#map {
+  width: 100%;
+  height: 460px;
+  border-radius: var(--r);
+  border: 1px solid var(--border2);
+  overflow: hidden;
+  box-shadow:
+    0 2px 8px rgba(0,0,0,0.3),
+    0 0 0 1px rgba(255,255,255,0.03) inset;
+}
+
+.map-hint {
+  margin-top: 8px;
+  font-size: 0.76em;
+  color: var(--t3);
+}
+
+/* ══════════════════════════════════════
+   CARROUSEL
+══════════════════════════════════════ */
+.carousel-section { margin-bottom: 32px; }
+.carousel-topbar {
+  display: flex; align-items: center;
+  justify-content: space-between; margin-bottom: 12px;
+}
+.nav-pair { display: flex; gap: 5px; }
+.nav-btn {
+  width: 32px; height: 32px;
+  border: 1px solid var(--border2);
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--t2); font-size: 0.9em;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.18s;
+}
+.nav-btn:hover { background: var(--bg3); color: var(--t1); }
+
+.carousel-shell {
+  background: var(--bg1);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 16px 16px 12px;
+}
+.carousel {
+  display: flex; gap: 10px;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  padding-bottom: 8px;
+  cursor: grab;
+}
+.carousel:active { cursor: grabbing; }
+.carousel::-webkit-scrollbar { height: 3px; }
+.carousel::-webkit-scrollbar-track { background: var(--bg2); border-radius: 3px; }
+.carousel::-webkit-scrollbar-thumb { background: var(--bg4); border-radius: 3px; }
+.carousel::-webkit-scrollbar-thumb:hover { background: var(--t3); }
+
+/* ══════════════════════════════════════
+   CARTES
+══════════════════════════════════════ */
+.card {
+  flex: 0 0 auto;
+  width: 185px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 0;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.22s cubic-bezier(.22,.68,0,1.2),
+              box-shadow 0.22s,
+              border-color 0.22s;
+}
+.card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 24px 48px rgba(0,0,0,0.5);
+  border-color: var(--border2);
+}
+.card.best-slot { border-color: rgba(212,168,83,0.35); }
+
+/* Bande colorée score en haut */
+.card-top-bar {
+  height: 4px;
+  width: 100%;
+  background: var(--card-top-color, var(--border));
+}
+
+/* Badge meilleur créneau */
+.best-badge {
+  background: linear-gradient(90deg, rgba(212,168,83,0.18), rgba(212,168,83,0.06));
+  border-bottom: 1px solid rgba(212,168,83,0.18);
+  color: var(--gold);
+  font-size: 0.59em; font-weight: 600;
+  letter-spacing: 0.1em;
+  text-align: center; padding: 4px 0;
+  text-transform: uppercase;
+}
+
+/* Contenu */
+.card-body { padding: 14px 15px 15px; }
+
+/* Heure + jour */
+.card-time {
+  margin-bottom: 13px;
+}
+.card-time-hour {
+  font-family: 'Fraunces', serif;
+  font-size: 1.6em; font-weight: 500;
+  color: var(--t1); line-height: 1;
+  letter-spacing: -0.02em;
+}
+.card-time-day {
+  font-size: 0.74em; color: var(--t3);
+  font-weight: 400; margin-top: 2px;
+}
+
+/* Score mis en avant juste après l'heure */
+.card-score-row {
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 13px;
+  padding-bottom: 13px;
+  border-bottom: 1px solid var(--border);
+}
+.card-score-num {
+  font-family: 'Fraunces', serif;
+  font-size: 1.55em; font-weight: 600; line-height: 1;
+}
+.card-score-sub { font-size: 0.5em; opacity: 0.45; }
+.card-score-chip {
+  font-size: 0.7em; font-weight: 600;
+  padding: 3px 9px; border-radius: 30px;
+  letter-spacing: 0.03em; line-height: 1.4;
+}
+
+/* Météo */
+.card-weather {
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 11px;
+}
+.card-emoji { font-size: 1.35em; line-height: 1; flex-shrink: 0; }
+.card-wlabel { font-size: 0.78em; color: var(--t2); font-weight: 500; line-height: 1.3; }
+
+/* Données */
+.card-data { display: flex; flex-direction: column; gap: 5px; }
+.card-data-row {
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: 0.8em;
+}
+.card-dk { color: var(--t3); }
+.card-dv { color: var(--t1); font-weight: 500; }
+
+/* ══════════════════════════════════════
+   LOADING
+══════════════════════════════════════ */
+.loading-state {
+  display: flex; align-items: center; justify-content: center;
+  gap: 10px; padding: 56px 20px;
+  color: var(--t3); font-size: 0.84em; letter-spacing: 0.06em;
+}
+.spinner {
+  width: 18px; height: 18px;
+  border: 2px solid var(--bg4);
+  border-top-color: var(--sage);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ══════════════════════════════════════
+   OVERLAY
+══════════════════════════════════════ */
+.overlay {
+  position: fixed; inset: 0;
+  background: rgba(8,14,11,0.82);
+  display: flex; justify-content: center; align-items: center;
+  z-index: 9999;
+  animation: fadeIn 0.2s ease;
+  backdrop-filter: blur(8px);
+}
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+.overlay-content {
+  background: var(--bg1);
+  border: 1px solid var(--border2);
+  border-radius: var(--r);
+  padding: 0;
+  max-width: 520px; width: 95%;
+  max-height: 90vh; overflow-y: auto;
+  animation: slideUp 0.24s cubic-bezier(.22,.68,0,1.2);
+  position: relative;
+  box-shadow: 0 40px 80px rgba(0,0,0,0.6);
+}
+@keyframes slideUp {
+  from { transform: translateY(18px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+.overlay-content::-webkit-scrollbar { width: 3px; }
+.overlay-content::-webkit-scrollbar-thumb { background: var(--bg4); border-radius: 3px; }
+
+/* Header de l'overlay avec couleur score */
+.ov-header {
+  padding: 28px 28px 24px;
+  border-bottom: 1px solid var(--border);
+  position: relative;
+}
+.ov-header-accent {
+  position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  border-radius: var(--r) var(--r) 0 0;
+}
+
+.overlay-close {
+  position: absolute; top: 14px; right: 14px;
+  z-index: 10;
+  background: var(--bg3); border: 1px solid var(--border2);
+  border-radius: var(--r-sm);
+  width: 30px; height: 30px;
+  font-size: 0.8em; color: var(--t2);
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: all 0.15s;
+  pointer-events: all;
+}
+.overlay-close:hover { background: var(--bg4); color: var(--t1); border-color: var(--t3); }
+
+.ov-kicker {
+  font-size: 0.67em; font-weight: 600;
+  letter-spacing: 0.18em; text-transform: uppercase;
+  color: var(--t3); margin-bottom: 6px;
+}
+.ov-title {
+  font-family: 'Fraunces', serif;
+  font-size: 1.65em; font-weight: 500;
+  color: var(--t1); line-height: 1.15;
+  padding-right: 40px;
+}
+.ov-weather-row {
+  display: flex; align-items: center; gap: 10px;
+  margin-top: 12px;
+}
+.ov-weather-icon { font-size: 1.8em; line-height: 1; }
+.ov-weather-label { font-size: 0.9em; color: var(--t2); font-weight: 400; }
+
+/* Score hero */
+.ov-score-hero {
+  padding: 22px 28px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 20px;
+}
+.ov-score-big {
+  font-family: 'Fraunces', serif;
+  font-size: 3.8em; font-weight: 600;
+  line-height: 1; flex-shrink: 0;
+}
+.ov-score-big span { font-size: 0.35em; opacity: 0.45; }
+.ov-score-right { flex: 1; }
+.ov-score-verdict {
+  font-size: 1em; font-weight: 600;
+  color: var(--t1); margin-bottom: 10px;
+}
+.ov-score-track {
+  height: 5px; background: var(--bg3);
+  border-radius: 4px; overflow: hidden;
+}
+.ov-score-fill {
+  height: 100%; border-radius: 4px;
+  transition: width 0.7s cubic-bezier(.22,.68,0,1.2);
+}
+
+/* Grille stats */
+.ov-body { padding: 22px 28px; }
+
+.ov-grid {
+  display: grid; grid-template-columns: 1fr 1fr 1fr;
+  gap: 10px; margin-bottom: 24px;
+}
+.ov-stat {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  padding: 13px 14px;
+}
+.ov-stat-label {
+  font-size: 0.65em; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--t3);
+  font-weight: 500; margin-bottom: 5px;
+}
+.ov-stat-val {
+  font-family: 'Fraunces', serif;
+  font-size: 1.15em; font-weight: 600; color: var(--t1);
+  line-height: 1.2;
+}
+
+.ov-div { border: none; border-top: 1px solid var(--border); margin: 0 0 22px; }
+
+/* Tips */
+.ov-tips-label {
+  font-size: 0.67em; font-weight: 600;
+  letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--t3); margin-bottom: 12px;
+}
+.ov-tips-list { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+.ov-tips-list li {
+  padding: 12px 15px;
+  background: var(--bg2);
+  border-left: 2px solid var(--sage-border);
+  border-radius: 0 var(--r-sm) var(--r-sm) 0;
+  font-size: 0.88em; line-height: 1.7;
+  color: var(--t1);
+}
+
+/* ══════════════════════════════════════
+   LÉGENDE
+══════════════════════════════════════ */
+.legend-section {
+  border-top: 1px solid var(--border);
+  padding-top: 22px; margin-bottom: 36px;
+}
+.legend-items {
+  display: flex; flex-wrap: wrap;
+  gap: 10px 24px; margin-top: 14px;
+}
+.legend-item {
+  display: flex; align-items: center;
+  gap: 9px; font-size: 0.82em; color: var(--t2);
+}
+.ldot {
+  width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0;
+}
+.ld-g { background: var(--s-green); }
+.ld-y { background: var(--s-yellow); }
+.ld-o { background: var(--s-orange); }
+.ld-r { background: var(--s-red); }
+.ld-gold { background: var(--gold); }
+
+/* ══════════════════════════════════════
+   FOOTER
+══════════════════════════════════════ */
+footer {
+  border-top: 1px solid var(--border);
+  padding-top: 20px;
+  font-size: 0.75em; color: var(--t3);
+  line-height: 2.2;
+  display: flex; justify-content: space-between; align-items: center;
+  flex-wrap: wrap; gap: 10px;
+}
+.footer-left { line-height: 1.8; }
+.footer-scoring-btn {
+  display: inline-flex; align-items: center; gap: 7px;
+  background: var(--bg2);
+  border: 1px solid var(--border2);
+  border-radius: var(--r-sm);
+  padding: 8px 14px;
+  color: var(--t2); font-size: 1em;
+  font-family: 'Figtree', sans-serif;
+  cursor: pointer; transition: all 0.18s;
+  white-space: nowrap;
+}
+.footer-scoring-btn:hover { border-color: var(--sage-border); color: var(--sage); background: var(--sage-dim); }
+
+/* Overlay scoring */
+.scoring-overlay {
+  position: fixed; inset: 0;
+  background: rgba(8,14,11,0.85);
+  display: flex; justify-content: center; align-items: center;
+  z-index: 9999;
+  animation: fadeIn 0.18s ease;
+  backdrop-filter: blur(8px);
+}
+.scoring-content {
+  background: var(--bg1);
+  border: 1px solid var(--border2);
+  border-radius: var(--r);
+  padding: 0;
+  max-width: 560px; width: 95%;
+  max-height: 88vh; overflow-y: auto;
+  animation: slideUp 0.22s cubic-bezier(.22,.68,0,1.2);
+  position: relative;
+  box-shadow: 0 40px 80px rgba(0,0,0,0.6);
+}
+.scoring-content::-webkit-scrollbar { width: 3px; }
+.scoring-content::-webkit-scrollbar-thumb { background: var(--bg4); border-radius: 3px; }
+
+.scoring-header {
+  padding: 26px 28px 22px;
+  border-bottom: 1px solid var(--border);
+  position: relative;
+}
+.scoring-header-bar {
+  height: 3px; background: var(--sage);
+  border-radius: var(--r) var(--r) 0 0;
+  position: absolute; top: 0; left: 0; right: 0;
+}
+.scoring-kicker {
+  font-size: 0.67em; font-weight: 600;
+  letter-spacing: 0.18em; text-transform: uppercase;
+  color: var(--t3); margin-bottom: 5px;
+}
+.scoring-title {
+  font-family: 'Fraunces', serif;
+  font-size: 1.5em; font-weight: 500;
+  color: var(--t1); line-height: 1.2;
+  padding-right: 36px;
+}
+.scoring-body { padding: 22px 28px 28px; }
+.scoring-intro {
+  font-size: 0.88em; color: var(--t2); line-height: 1.7;
+  margin-bottom: 22px;
+}
+
+.scoring-criteria { display: flex; flex-direction: column; gap: 12px; margin-bottom: 24px; }
+.scoring-row {
+  display: flex; align-items: flex-start; gap: 14px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  padding: 13px 15px;
+}
+.scoring-icon { font-size: 1.3em; line-height: 1; flex-shrink: 0; margin-top: 1px; }
+.scoring-info { flex: 1; }
+.scoring-name {
+  font-size: 0.88em; font-weight: 600;
+  color: var(--t1); margin-bottom: 3px;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.scoring-pts {
+  font-family: 'Fraunces', serif;
+  font-size: 1em; color: var(--sage); font-weight: 500;
+}
+.scoring-desc {
+  font-size: 0.8em; color: var(--t2); line-height: 1.6;
+}
+.scoring-bar-wrap { margin-top: 7px; }
+.scoring-bar-track {
+  height: 3px; background: var(--bg3); border-radius: 2px;
+}
+.scoring-bar-fill {
+  height: 100%; border-radius: 2px; background: var(--sage);
+}
+
+.scoring-scale { margin-top: 6px; }
+.scoring-scale-title {
+  font-size: 0.68em; font-weight: 600;
+  letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--t3); margin-bottom: 10px;
+}
+.scoring-scale-items { display: flex; flex-direction: column; gap: 6px; }
+.scoring-scale-row {
+  display: flex; align-items: center; gap: 10px;
+  font-size: 0.83em;
+}
+.scale-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+.scale-range { font-family: 'Fraunces', serif; font-weight: 600; min-width: 36px; }
+.scale-label { color: var(--t2); }
+
+/* ══════════════════════════════════════
+   MAPLIBRE OVERRIDES
+══════════════════════════════════════ */
+.maplibregl-ctrl-group {
+  background: var(--bg2) !important;
+  border: 1px solid var(--border2) !important;
+  border-radius: var(--r-sm) !important;
+  box-shadow: none !important;
+}
+.maplibregl-ctrl-group button { background: transparent !important; }
+.maplibregl-ctrl-group button:hover { background: var(--bg3) !important; }
+.maplibregl-ctrl-icon { filter: invert(0.65) sepia(0.2); }
+.maplibregl-ctrl-attrib { background: rgba(13,22,18,0.75) !important; color: var(--t3) !important; font-size: 10px !important; }
+
+/* ══════════════════════════════════════
+   RESPONSIVE
+══════════════════════════════════════ */
+@media (max-width: 660px) {
+  .app { padding: 0 16px 60px; }
+  header { grid-template-columns: 1fr; }
+  .header-badge-group { display: none; }
+  header h1 { font-size: 2.8em; }
+  #map { height: 320px; }
+  .card { width: 155px; }
+  .ov-grid { grid-template-columns: 1fr 1fr; }
+  .ov-score-big { font-size: 2.8em; }
+  .search-box input { width: 150px; }
+}
+</style>
 </head>
 <body>
+<div class="app">
 
   <!-- HEADER -->
   <header>
-    <h1>Météo de la Carpe 🎣</h1>
-    <p>Choisissez un lieu et une date pour découvrir la météo & conseils pêche</p>
+    <div>
+      <div class="header-kicker">Météo Pêche à la Carpe</div>
+      <h1>Météo<br><em>de la Carpe</em></h1>
+      <p class="header-desc">Choisissez un lieu et une date pour accéder aux conditions météo horaires et aux conseils de pêche.</p>
+    </div>
+    <div class="header-badge-group">
+      <span class="header-badge">🌦 7 jours de prévisions</span>
+      <span class="header-badge">📡 2 sources météo fusionnées</span>
+      <span class="header-badge">🌙 Phases lunaires incluses</span>
+    </div>
   </header>
 
-  <!-- CONTROLES HAUT -->
-  <div class="top-controls">
-    <input type="text" id="cityInput" placeholder="Rechercher une ville..." />
-    <div class="day-buttons" id="dayButtons"></div>
-    <button id="searchBtn">Chercher</button>
+  <!-- TOOLBAR -->
+  <div class="toolbar">
+    <div class="search-box">
+      <input type="text" id="cityInput" placeholder="Ville (Nantes…)" />
+      <button id="searchBtn">Chercher</button>
+    </div>
+    <div class="day-strip" id="dayButtons"></div>
   </div>
 
   <!-- CARTE -->
-  <div id="map"></div>
+  <div class="map-section">
+    <div class="map-header">
+      <div class="slabel" style="margin:0;flex:1;">Localisation</div>
+      <div class="map-toggles">
+        <button class="map-toggle active" id="btnOutdoors"  onclick="setMapStyle('outdoors')">🏔 Terrain</button>
+        <button class="map-toggle"        id="btnSatellite" onclick="setMapStyle('satellite')">🛰 Satellite</button>
+      </div>
+    </div>
+    <div id="map"></div>
+    <p class="map-hint">📍 Cliquez sur la carte ou déplacez le marqueur pour choisir votre spot de pêche</p>
+  </div>
 
   <!-- CARROUSEL -->
-  <div class="carousel-container">
-    <button class="carousel-btn left" id="prevDay">⬅️</button>
-    <div id="weather-carousel" class="carousel"></div>
-    <button class="carousel-btn right" id="nextDay">➡️</button>
+  <div class="carousel-section">
+    <div class="carousel-topbar">
+      <div class="slabel" style="margin:0;flex:1;">Créneaux horaires</div>
+      <div class="nav-pair">
+        <button class="nav-btn" id="prevDay">←</button>
+        <button class="nav-btn" id="nextDay">→</button>
+      </div>
+    </div>
+    <div class="carousel-shell">
+      <div id="weather-carousel" class="carousel">
+        <div class="loading-state"><div class="spinner"></div>Chargement des données météo…</div>
+      </div>
+    </div>
   </div>
 
-  <!-- LEGENDE METEO -->
-  <section class="legend">
-  <h3>Légende météo</h3>
-  <div class="legend-items">
-    <div><span class="legend-icon green"></span> Conditions idéales ✅</div>
-    <div><span class="legend-icon yellow"></span> Conditions correctes  👍</div>
-    <div><span class="legend-icon orange"></span> Activité modérée ⚠️</div>
-    <div><span class="legend-icon red"></span> Conditions difficiles 🛑</div>
-    <div><span class="legend-icon star">⭐</span> Meilleur créneau</div>
+  <!-- LÉGENDE -->
+  <div class="legend-section">
+    <div class="slabel">Légende</div>
+    <div class="legend-items">
+      <div class="legend-item"><span class="ldot ld-g"></span>Conditions idéales — 8 à 10</div>
+      <div class="legend-item"><span class="ldot ld-y"></span>Conditions correctes — 6 à 7</div>
+      <div class="legend-item"><span class="ldot ld-o"></span>Activité modérée — 4 à 5</div>
+      <div class="legend-item"><span class="ldot ld-r"></span>Conditions difficiles — 0 à 3</div>
+      <div class="legend-item"><span class="ldot ld-gold"></span>⭐ Meilleur créneau</div>
+    </div>
   </div>
-</section>
 
-  <!-- FOOTER COPYRIGHT -->
+  <!-- FOOTER -->
   <footer>
-    <p>© 2026 Météo de la Carpe. Tous droits réservés.</p>
-    <p>Toute reproduction totale ou partielle est interdite sans autorisation.</p>
+    <div class="footer-left">
+      <p>© 2026 Météo de la Carpe — Tous droits réservés</p>
+      <p>Toute reproduction totale ou partielle est interdite sans autorisation.</p>
+    </div>
+    <button class="footer-scoring-btn" onclick="openScoringOverlay()">
+      📊 Comment est calculé le score ?
+    </button>
   </footer>
 
-  <!-- SCRIPTS -->
-  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-  <script src="app.js"></script>
+</div>
+<script src="app.js"></script>
 </body>
 </html>
