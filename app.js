@@ -28,7 +28,38 @@ const STYLE_OUTDOORS = {
     layers: [
         { id: 'osm', type: 'raster', source: 'osm', paint: { 'raster-fade-duration': 200 } }
     ]
-}
+};
+
+const STYLE_SATELLITE = {
+    version: 8,
+    sources: {
+        sat: {
+            type: 'raster',
+            tiles: [
+                'https://mt0.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
+                'https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
+                'https://mt2.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
+                'https://mt3.google.com/vt/lyrs=s&x={x}&y={y}&z={z}'
+            ],
+            tileSize: 256,
+            maxzoom: 18,
+            attribution: '© Google Maps'
+        },
+        labels: {
+            type: 'raster',
+            tiles: [
+                'https://mt0.google.com/vt/lyrs=h&x={x}&y={y}&z={z}',
+                'https://mt1.google.com/vt/lyrs=h&x={x}&y={y}&z={z}'
+            ],
+            tileSize: 256,
+            maxzoom: 18
+        }
+    },
+    layers: [
+        { id: 'sat-layer',    type: 'raster', source: 'sat',    paint: { 'raster-fade-duration': 200 } },
+        { id: 'labels-layer', type: 'raster', source: 'labels', paint: { 'raster-opacity': 0.85, 'raster-fade-duration': 200 } }
+    ]
+};
 
 let currentStyle = 'outdoors';
 let markerLngLat = [2.3522, 48.8566];
