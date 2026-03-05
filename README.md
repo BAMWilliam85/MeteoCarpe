@@ -42,8 +42,6 @@ Score normalisé sur 10.5 pts répartis sur 6 critères documentés (Chronocarpe
 
 Carte
 
-Leaflet supprimé → remplacé par MapLibre GL JS
-Carte principale : Stadia Maps Outdoors (terrain, relief, lacs/rivières visibles — parfait pour la pêche)
 Toggle 🛰 Satellite : tuiles Google Maps haute résolution, zoom bloqué à 18 pour éviter le pixelisé
 Marqueur draggable en plus du clic
 map.on('load') : attendre le chargement complet avant de déclencher la géoloc
